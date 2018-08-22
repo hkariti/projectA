@@ -11,6 +11,7 @@ class WriteEvt(ctypes.Structure):
 # Hello BPF Program
 bpf_text = """ 
 #include <bcc/proto.h>
+#include <linux/sched.h>
 
 // Define output
 struct write_evt {
@@ -26,8 +27,8 @@ TRACEPOINT_PROBE(syscalls, sys_enter_write)
 	.fd = args->fd,
 	.count = args->count,
     };
-    u32 current_pid = bpf_get_current_pid_tgid();
-    if (current_pid == 10277)
+    struct task_struct *t = (struct task_struct *)bpf_get_current_task();
+    if (t->pid == 10277)
         write_evt.perf_submit(args, &evt, sizeof(evt));
     return 0;
 };
@@ -45,5 +46,6 @@ def print_event(cpu, data, size):
 
 # Replace the event loop
 b["write_evt"].open_perf_buffer(print_event)
+print "Listening for events"
 while True:
     b.kprobe_poll()
