@@ -185,6 +185,7 @@ static int write_tp_init_module(void) {
 static void write_tp_exit_module(void) {
     unregister_kprobe(&kp); 
     unregister_chrdev(dev_major, MY_MODULE);
+    kfree(logs);
     printk(KERN_INFO "kprobe at %p unregistered\n", kp.addr);
 }
 
