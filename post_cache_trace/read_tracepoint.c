@@ -16,7 +16,7 @@ MODULE_VERSION("0.1");
 #define MY_MODULE "post_cache_read_tracepoint"
 
 #define MAX_SYMBOL_LEN 64
-static char symbol[MAX_SYMBOL_LEN] = "mpage_readpages";
+static char symbol[MAX_SYMBOL_LEN] = "ext4_readpages";
 module_param_string(symbol, symbol, sizeof(symbol), 0644);
 
 #define LOG_ENTRIES_BUFFER_SIZE 100
@@ -26,6 +26,7 @@ typedef struct _log_t {
     unsigned int pid;
     unsigned int major, minor;
     unsigned long inode;
+    unsigned long offset;
 } log_t;
 
 log_t* logs;
@@ -54,14 +55,15 @@ static void log_increment_write_head(void) {
     }
 }
 
-static void log_write(unsigned int pid, unsigned int major, unsigned int minor, unsigned long inode) {
+static void log_write(unsigned int pid, unsigned int major, unsigned int minor, unsigned long inode, unsigned long offset) {
     log_t* log_entry = logs + log_write_head;
 
     *log_entry = (log_t){
         .pid = pid,
         .major = major,
         .minor = minor,
-        .inode = inode
+        .inode = inode,
+	.offset = offset
     };
     log_increment_write_head();
 }
@@ -114,26 +116,28 @@ static struct kprobe kp = {
 };
 
 static int handler_pre(struct kprobe *p, struct pt_regs *regs) {
-    struct address_space* mapping = (struct address_space*) regs->di;
-    //void *buf = regs->rsi;
-    //size_t count = regs->dx;
+    struct file* file = (struct file*)regs->di;
+    struct page *page = (struct page*)regs->si;
+    //struct page *page = (struct page*)regs->dx;
 
     unsigned int pid = current->pid;
     struct super_block *sb;
     struct inode *f_inode;
     unsigned long inode_n;
     unsigned int major, minor;
+    loff_t offset;
 
     if (!logging_enabled) return 0;
 
     rcu_read_lock();
-    f_inode = mapping->host;
+    f_inode = file->f_inode;
     sb = f_inode->i_sb;
-        inode_n = f_inode->i_ino;
+    inode_n = f_inode->i_ino;
+    offset = file->f_pos;
     major = MAJOR(sb->s_dev);
     minor = MINOR(sb->s_dev);
     if (major > 0)
-       log_write(pid, major, minor, inode_n);
+       log_write(pid, major, minor, inode_n, offset);
     rcu_read_unlock();
     return 0;
 }
