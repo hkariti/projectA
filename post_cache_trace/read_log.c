@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#define DEV "../hello"
+#define DEV "post_cache"
 #define BUFFER_SIZE 100
 
 typedef struct _log_t {
@@ -11,6 +11,7 @@ typedef struct _log_t {
     unsigned int major, minor;
     unsigned long inode;
     unsigned long offset;
+    int id;
 
 } log_t;
 int main() {
@@ -32,7 +33,7 @@ int main() {
             return -1;
         }
         for (int i = 0; i < entries_read; i++) {
-            printf("PID: %d major: %d minor: %d inode: %ld offset: %ld\n", buffer[i].pid, buffer[i].major, buffer[i].minor, buffer[i].inode, buffer[i].offset);
+            printf("kp: %d PID: %d major: %d minor: %d inode: %ld offset: %ld\n", buffer[i].id, buffer[i].pid, buffer[i].major, buffer[i].minor, buffer[i].inode, buffer[i].offset);
         }
         sleep(1);
     }
