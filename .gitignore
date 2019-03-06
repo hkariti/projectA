@@ -1,2 +1,14 @@
 .*.swp
 .vagrant
+*.out
+*.log
+
+# kernel devel
+*.o
+*.ko
+*.mod.[co]
+*.cmd
+modules.order
+Module.symvers
+.cache.mk
+.tmp_versions
