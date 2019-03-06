@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdbool.h>
 
-#define DEV "write_tracepoint"
+#define DEV "/dev/file_trace"
 #define BUFFER_SIZE 100
 
 typedef struct _log_t {
@@ -12,6 +13,7 @@ typedef struct _log_t {
     unsigned long inode;
     unsigned long offset;
     size_t count;
+    bool write;
 
 } log_t;
 int main() {
@@ -33,7 +35,7 @@ int main() {
             return -1;
         }
         for (int i = 0; i < entries_read; i++) {
-            printf("PID: %d major: %d minor: %d inode: %ld offset: %ld count: %ld\n", buffer[i].pid, buffer[i].major, buffer[i].minor, buffer[i].inode, buffer[i].offset, buffer[i].count);
+            printf("PID: %d major: %d minor: %d inode: %ld offset: %ld count: %ld write: %d\n", buffer[i].pid, buffer[i].major, buffer[i].minor, buffer[i].inode, buffer[i].offset, buffer[i].count, buffer[i].write);
         }
         sleep(1);
     }
