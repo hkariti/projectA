@@ -1,0 +1,9 @@
+This dir contains the kernel modules for generating these traces:
+* pre-cache file access trace (file_trace.ko)
+* post-cache file access trace (post_cache_trace.ko)
+
+Plus each module has a utility that reads the trace:
+* read_file_log.c reads the file trace
+* read_post_cache_log.c reads the post cache trace
+
+There exists a third client trace, the block-level trace. See the stackbd/ submodule.
