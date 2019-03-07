@@ -23,6 +23,11 @@ static char write_symbol[MAX_SYMBOL_LEN] = "vfs_write";
 int target_major = 8;
 int target_minor = 1;
 
+module_param(target_major, int, S_IRUSR | S_IWUSR);
+MODULE_PARM_DESC(target_major, "Major number of device to trace");
+module_param(target_minor, int, S_IRUSR | S_IWUSR);
+MODULE_PARM_DESC(target_minor, "Minor number of device to trace");
+
 // Structure for our log entries
 typedef struct _log_t {
     unsigned int pid;
