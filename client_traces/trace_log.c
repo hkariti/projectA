@@ -67,7 +67,7 @@ void log_increment_write_head() {
     if (log.log_write_head == log.log_read_head) {
         log_increment_read_head(1);
         log.overruns++;
-        pr_warn("log overrun");
+        printk(KERN_WARNING "%s: log overrun", log.device_name);
     }
 };
 
@@ -79,7 +79,7 @@ void* log_get_write_slot() {
 
 static int logger_open(struct inode* in, struct file* fd) {
     log.logger_clients++;
-    pr_debug("added reader, number is now %d", log.logger_clients);
+    printk(KERN_DEBUG "%s: added reader, number is now %d", log.device_name, log.logger_clients);
     return 0;
 }
 
@@ -107,6 +107,6 @@ static ssize_t logger_read(struct file *fd, char *buffer, size_t count, loff_t *
 
 static int logger_release(struct inode *in, struct file *fd) {
     log.logger_clients--;
-    pr_debug("removed reader, number is now %d", log.logger_clients);
+    printk(KERN_DEBUG "%s: removed reader, number is now %d", log.device_name, log.logger_clients);
     return 0;
 }
