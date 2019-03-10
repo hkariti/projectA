@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define DEV "/dev/post_cache_trace"
 #define BUFFER_SIZE 100
