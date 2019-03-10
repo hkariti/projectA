@@ -44,9 +44,7 @@ typedef struct _log_t {
 } log_t;
 
 static void log_write(unsigned int pid, unsigned int major, unsigned int minor, unsigned long inode, unsigned long offset, unsigned long size, bool is_readahead, bool write) {
-    log_t* log_entry = log_get_write_slot();
-
-    *log_entry = (log_t){
+    log_t log_entry = {
         .pid = pid,
         .major = major,
         .minor = minor,
@@ -56,6 +54,7 @@ static void log_write(unsigned int pid, unsigned int major, unsigned int minor, 
         .is_readahead = is_readahead,
         .write = write
     };
+    log_write_entry(&log_entry);
 }
 
 int match_device(int major, int minor) {

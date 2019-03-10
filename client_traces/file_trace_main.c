@@ -39,9 +39,7 @@ typedef struct _log_t {
 } log_t;
 
 static void log_write(unsigned int pid, unsigned int major, unsigned int minor, unsigned long inode, loff_t offset, size_t count, bool write) {
-    log_t* log_entry = log_get_write_slot();
-
-    *log_entry = (log_t){
+    log_t log_entry = {
         .pid = pid,
         .major = major,
         .minor = minor,
@@ -50,6 +48,7 @@ static void log_write(unsigned int pid, unsigned int major, unsigned int minor, 
         .count = count,
         .write = write
     };
+    log_write_entry(&log_entry);
 }
 
 int match_device(int major, int minor) {
