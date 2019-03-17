@@ -33,14 +33,14 @@ module_param(target_minor, int, S_IRUSR | S_IWUSR);
 MODULE_PARM_DESC(target_minor, "Minor number of device to trace");
 
 // Structure for our log entries
-typedef struct _log_t {
-    unsigned int pid;
-    unsigned int major, minor;
-    unsigned long inode;
-    unsigned long offset;
-    unsigned long size;
-    bool is_readahead;
-    bool write;
+typedef struct __attribute__((packed)) _log_t {
+    uint32_t pid;
+    uint32_t major, minor;
+    uint64_t inode;
+    int64_t offset;
+    uint64_t size;
+    uint8_t is_readahead;
+    uint8_t write;
 } log_t;
 
 static void log_write(unsigned int pid, unsigned int major, unsigned int minor, unsigned long inode, unsigned long offset, unsigned long size, bool is_readahead, bool write) {
