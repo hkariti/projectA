@@ -12,3 +12,4 @@ modules.order
 Module.symvers
 .cache.mk
 .tmp_versions
+__pycache__
