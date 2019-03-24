@@ -1,54 +1,58 @@
-#!/usr/bin/python
-from __future__ import print_function
-from __future__ import division
-import fcntl
-import sys
-import SocketServer
-import struct
+import asyncio
 import json
-
-TIER_HINTINJECT = 0xFE0B
-PLACEMENT_DONTCARE = -1
-
-port = 1337
-hostname = '0.0.0.0'
-btier_device_name = '/dev/tiercontrol'
-
-def push_to_tier_manager(hint_entry):
-    pass
-
-def get_target_tier(hint_entry):
-    return PLACEMENT_DONTCARE
-
-def pack_hint_entry(hint_entry, placement_decision):
-    pack_format = 'QQi'
-    pack_fields = (hint_entry['offset'],
-                   hint_entry['count'],
-                   placement_decision)
-    packed_hint = struct.pack(pack_format, *pack_fields)
-    return packed_hint
+import logging
 
 
-class RequestHandler(SocketServer.StreamRequestHandler):
-    def handle(self):
-        while True:
-            line = self.rfile.readline().strip()
-            if not line:
-                print("Client {} disconnected".format(self.client_address))
-                break
-            hint_entry = json.loads(line)
-            push_to_tier_manager(hint_entry)
-            placement_decision = get_target_tier(hint_entry)
-            print("Got hint:", hint_entry, "placement decision:", placement_decision)
-            packed_hint = pack_hint_entry(hint_entry, placement_decision)
-            fcntl.ioctl(self.server.btier_device, TIER_HINTINJECT, packed_hint)
+class TCPHintReceiver:
+    """
+    Receives hints using TCP
+    """
+    def __init__(self, queue, host, port):
+        self.host = host
+        self.port = port
+        self.queue = queue
+        self._logger = logging.getLogger('receiver')
 
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        btier_hints_file_name = sys.argv[1]
-    print("Starting server on {}".format((hostname, port)))
-    btier_device = open(btier_device_name, 'wb', 0)
-    SocketServer.TCPServer.allow_reuse_address = True
-    server = SocketServer.TCPServer((hostname, port), RequestHandler)
-    server.btier_device = btier_device
-    server.serve_forever()
+    async def start(self):
+        """
+        Start listening on the given host and port.
+
+        This is an asyncio coroutine
+        """
+        self._server = await asyncio.start_server(self._serve_client, host=self.host, port=self.port)
+        self._logger.info("Listening on {}:{}".format(self.host, self.port))
+
+    async def stop(self):
+        """
+        Stop the server.
+
+        This is an asayncio coroutine
+        """
+        self._logger.info("Stopping")
+        self._server.close()
+
+        await self._server.wait_closed()
+
+    async def _serve_client(self, reader, writer):
+        """
+        Handles a connected client. Meant to be used by asyncio.start_server().
+
+        Expects each message to be a json-encoded line.
+        """
+        addr = writer.get_extra_info('peername')
+        self._logger.info("Got connection from {}".format(addr))
+        try:
+            while True:
+                message = await reader.readline()
+                if not message:
+                    break
+                message = message.decode().strip()
+                try:
+                    parsed_message = json.loads(message)
+                    await self.queue.put(parsed_message)
+                except ValueError as e:
+                    self._logger.info("Bad message, ignoring")
+                    self._logger.debug("Message:", message, "Caused error:", e)
+        finally:
+            writer.close()
+            self._logger.info("Connection to {} closed".format(addr))
