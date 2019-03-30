@@ -3,6 +3,8 @@ import sys
 import asyncio
 import logging
 import argparse
+import signal
+import functools
 
 from hint_generator import HintGenerator
 from hint_client import HintClient, stdout_hint_consumer
@@ -13,6 +15,13 @@ DEFAULT_HOST = 'localhost'
 HINT_CLIENTS = dict(remote=HintClient, stdout=stdout_hint_consumer)
 
 logger = logging.getLogger('main') 
+
+def shutdown(loop):
+    logger.info('received stop signal, cancelling tasks...')
+    for task in asyncio.Task.all_tasks():
+        task.cancel()
+    logger.info('bye, exiting in a minute...')
+
 async def consume_trace(trace_queue, handle_trace_record, handle_hint):
     """
     Continuously does the following:
@@ -34,19 +43,19 @@ async def consume_trace(trace_queue, handle_trace_record, handle_hint):
                 logger.debug("No hint returned")
             trace_queue.task_done()
         except asyncio.CancelledError:
-            logger.info('cancelled')
+            logger.info('Stopping reading from queue')
             raise
         except Exception as e:
             logger.exception('Got error, skipping')
             trace_queue.task_done()
 
 async def main(options):
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     logger.info('Initializing')
     logger.debug('Creating trace sources')
     file_trace = FileTraceSource('/dev/file_trace')
     post_cache_trace = PostCacheTraceSource('/dev/post_cache_trace')
-    block_trace = BlockTraceSource('/dev/block_trace')
+    block_trace = BlockTraceSource('/dev/sdc')
     logger.debug('Creating queue')
     trace_queue = asyncio.Queue(maxsize=1000)
     logger.debug('Creating generator')
@@ -63,7 +72,10 @@ async def main(options):
         tasks.append(task)
     logger.info('Started all sources')
 
-    await consume_trace(trace_queue, generator.handle_trace_record, client)
+    tasks.append(asyncio.ensure_future(consume_trace(trace_queue, generator.handle_trace_record, client)))
+    logger.info('Started consumer')
+
+    await asyncio.gather(*tasks)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Process IO activity trace and genereate hints')
@@ -76,5 +88,12 @@ def parse_args():
 if __name__ == '__main__':
     options = parse_args()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(options))
-    loop.close()
+    loop.add_signal_handler(signal.SIGHUP, functools.partial(shutdown, loop))
+    loop.add_signal_handler(signal.SIGTERM, functools.partial(shutdown, loop))
+    try:
+        loop.run_until_complete(main(options))
+        loop.close()
+    except asyncio.CancelledError:
+        logger.info("Exiting")
+    except Exception as e:
+        logger.exception("Error")
