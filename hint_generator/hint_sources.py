@@ -128,7 +128,7 @@ class BlockTraceSource:
         except ProcessLookupError:
             pass
         await self._blktrace.wait()
-        await output_err = await self._blktrace.stderr.read()
+        output_err = await self._blktrace.stderr.read()
         self._logger.debug(f"blktrace pipe stopped. stderr: {output_err}")
         self._blktrace = None
 
