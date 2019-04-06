@@ -128,7 +128,8 @@ class BlockTraceSource:
         except ProcessLookupError:
             pass
         await self._blktrace.wait()
-        self._logger.debug("blktrace pipe stopped")
+        await output_err = await self._blktrace.stderr.read()
+        self._logger.debug(f"blktrace pipe stopped. stderr: {output_err}")
         self._blktrace = None
 
     async def async_read_record(self):
@@ -182,6 +183,7 @@ class BlockTraceSource:
                 raise
             except Exception as e:
                 self._logger.exception('error while reading record')
+                await asyncio.sleep(1)
                 await self.start_blktrace()
 
     def _is_write(self, op):
