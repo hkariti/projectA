@@ -2,7 +2,7 @@
 #include <linux/fdtable.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
-#include <linux/mutex.h>
+#include <linux/spinlock.h>
 
 #include "trace_log.h"
 
@@ -15,7 +15,7 @@ struct trace_log {
     unsigned int entry_size;
     char* device_name;
     int dev_major;
-    struct mutex lock;
+    spinlock_t lock;
 };
 
 static int logger_open(struct inode*, struct file*);
@@ -33,7 +33,7 @@ int log_init(unsigned int entry_size, unsigned int entry_count, char* device_nam
     log.entry_count = entry_count;
     log.entry_size = entry_size;
     log.entries = kmalloc(entry_size * entry_count, GFP_KERNEL);
-    mutex_init(&log.lock);
+    spin_lock_init(&log.lock);
     log.dev_major = register_chrdev(0, device_name, &log_fops);
     log.device_name = device_name;
     if (!log.entries || log.dev_major == -1) {
@@ -44,7 +44,6 @@ int log_init(unsigned int entry_size, unsigned int entry_count, char* device_nam
 };
 
 void log_destroy() {
-    mutex_destroy(&log.lock);
     unregister_chrdev(log.dev_major, log.device_name);
     kfree(log.entries);
 }
@@ -78,17 +77,17 @@ void log_increment_write_head() {
 
 void log_write_entry(void* data) {
     void* log_entry;
-    mutex_lock(&log.lock);
+    spin_lock_bh(&log.lock);
     log_entry = log.entries + log.log_write_head * log.entry_size;
     log_increment_write_head();
     memcpy(log_entry, data, log.entry_size);
-    mutex_unlock(&log.lock);
+    spin_unlock_bh(&log.lock);
 }
 
 static int logger_open(struct inode* in, struct file* fd) {
-    mutex_lock(&log.lock);
+    spin_lock_bh(&log.lock);
     log.logger_clients++;
-    mutex_unlock(&log.lock);
+    spin_unlock_bh(&log.lock);
     printk(KERN_DEBUG "%s: added reader, number is now %d", log.device_name, log.logger_clients);
     return 0;
 }
@@ -103,7 +102,7 @@ static ssize_t logger_read(struct file *fd, char *buffer, size_t byte_count, lof
     size_t first_read_size, second_read_size;
     size_t count = byte_count / log.entry_size;
     size_t log_count;
-    mutex_lock(&log.lock);
+    spin_lock_bh(&log.lock);
     log_count = log_entries_count();
     if (count > log_count)
         count = log_count;
@@ -115,14 +114,14 @@ static ssize_t logger_read(struct file *fd, char *buffer, size_t byte_count, lof
     }
     buffer = _logger_read(buffer, first_read_size);
     buffer = _logger_read(buffer, second_read_size);
-    mutex_unlock(&log.lock);
+    spin_unlock_bh(&log.lock);
     return count * log.entry_size;
 }
 
 static int logger_release(struct inode *in, struct file *fd) {
-    mutex_lock(&log.lock);
+    spin_lock_bh(&log.lock);
     log.logger_clients--;
-    mutex_unlock(&log.lock);
+    spin_unlock_bh(&log.lock);
     printk(KERN_DEBUG "%s: removed reader, number is now %d", log.device_name, log.logger_clients);
     return 0;
 }
