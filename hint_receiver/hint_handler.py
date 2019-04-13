@@ -64,6 +64,8 @@ class HintHandler:
         # Example: self._tier_manager.migrate(hint['offset'], TIER_NUM) See TierManager for more info
 
     def _get_target_tier(self, hint):
+        if hint.get('hint_data'):
+            return hint['hint_data']
         return PLACEMENT_DONTCARE
 
     def _pack_hint_entry(self, hint_entry, placement_decision):
