@@ -53,9 +53,11 @@ async def main(options):
     logging.basicConfig(level=logging.DEBUG)
     logger.info('Initializing')
     logger.debug('Creating trace sources')
-    file_trace = FileTraceSource('/dev/file_trace')
-    post_cache_trace = PostCacheTraceSource('/dev/post_cache_trace')
-    block_trace = BlockTraceSource('/dev/sdc')
+    traces = [
+            FileTraceSource('/dev/file_trace'),
+            PostCacheTraceSource('/dev/post_cache_trace'),
+            BlockTraceSource('/dev/sdb')
+            ]
     logger.debug('Creating queue')
     trace_queue = asyncio.Queue(maxsize=1000)
     logger.debug('Creating generator')
@@ -67,7 +69,7 @@ async def main(options):
         client = HintClient(options.host, options.port).send_hint
 
     tasks = []
-    for t in file_trace, post_cache_trace, block_trace:
+    for t in traces:
         task = asyncio.ensure_future(t.async_read_into(trace_queue))
         tasks.append(task)
     logger.info('Started all sources')

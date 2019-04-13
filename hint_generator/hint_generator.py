@@ -12,7 +12,7 @@ class HintGenerator:
         Record that correspond to a block write always return a hint and have a 'match' flag set.
         This is because the code on the other side holds write requests until a hint arrives.
         """
-        logger.debug("Processing record", record);
+        logger.debug(f"Processing record: {record}");
         hint = self._handle_trace_record(record)
 
         if record['type'] == 'block' and record['is_write']:

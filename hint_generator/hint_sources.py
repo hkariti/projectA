@@ -150,6 +150,7 @@ class BlockTraceSource:
             raise ValueError("unexpected EOF")
         self._logger.debug(f"read line: {line}")
         pid, offset, size, op = line.strip().split(b",")
+        pid = int(pid)
         offset = int(offset)
         size = int(size)
         is_write = self._is_write(op.decode())

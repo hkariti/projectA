@@ -61,6 +61,7 @@ class HintHandler:
         Optionally triggers block migrations based on the given hint
         """
         self._logger.debug("Trigerring block migration for hint", hint)
+        # Example: self._tier_manager.migrate(hint['offset'], TIER_NUM) See TierManager for more info
 
     def _get_target_tier(self, hint):
         return PLACEMENT_DONTCARE
