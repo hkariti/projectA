@@ -4,7 +4,7 @@ from collections import namedtuple
 import logging
 import signal
 
-NODATA_SLEEP_TIME = 1
+NODATA_SLEEP_TIME = 0.1
 
 class TraceSource:
     """
