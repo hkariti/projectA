@@ -27,8 +27,8 @@ if [ ! -d "$TARGET_REPO_DIR"/tgt ]; then
     git clone http://github.com/hkariti/tgt $TARGET_REPO_DIR/tgt
 fi
 cd $TARGET_REPO_DIR/tgt
-make SD_NOTIFY=1 # Tell it to support systemd. Will fail on manpages, it’s ok
-sudo make install # Will fail on manpages,it’s ok
+make SD_NOTIFY=1 # Tell it to support systemd.
+sudo make install
 sudo service tgt start
 
 echo Done
