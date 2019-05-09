@@ -13,7 +13,9 @@ apt-get update
 apt-get install -y build-essential tgt libsystemd-dev
 
 echo Building btier
-git clone http://github.com/hkariti/btier $TARGET_REPO_DIR/btier
+if [ ! -d "$TARGET_REPO_DIR/btier" ]; then 
+    git clone http://github.com/hkariti/btier $TARGET_REPO_DIR/btier
+fi
 cd $TARGET_REPO_DIR/btier
 make
 sudo make install
@@ -21,7 +23,9 @@ sudo make install
 # Install our custom tgt daemon
 echo '*** Building the tgt iSCSI daemon'
 sudo service tgt stop
-git clone http://github.com/hkariti/tgt $TARGET_REPO_DIR/tgt
+if [ ! -d "$TARGET_REPO_DIR"/tgt ]; then
+    git clone http://github.com/hkariti/tgt $TARGET_REPO_DIR/tgt
+fi
 cd $TARGET_REPO_DIR/tgt
 make SD_NOTIFY=1 # Tell it to support systemd. Will fail on manpages, it’s ok
 sudo make install # Will fail on manpages,it’s ok
